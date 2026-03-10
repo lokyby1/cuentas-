@@ -7,30 +7,28 @@ const FinanceContext = createContext();
 export const useFinance = () => useContext(FinanceContext);
 
 export const FinanceProvider = ({ children }) => {
-  const [walletBalance, setWalletBalance] = useState(0);
-  const [debts, setDebts] = useState([]);
-  const [fixedExpenses, setFixedExpenses] = useState([]);
-  const [transactions, setTransactions] = useState([]); // Historial
+  // Sincronización síncrona inicial desde localStorage
+  const getInitialState = (key, fallback) => {
+    try {
+      const backup = localStorage.getItem('finanzas_backup');
+      if (backup) {
+        return JSON.parse(backup)[key] || fallback;
+      }
+    } catch(e) {}
+    return fallback;
+  };
+
+  const [walletBalance, setWalletBalance] = useState(() => getInitialState('walletBalance', 0));
+  const [debts, setDebts] = useState(() => getInitialState('debts', []));
+  const [fixedExpenses, setFixedExpenses] = useState(() => getInitialState('fixedExpenses', []));
+  const [transactions, setTransactions] = useState(() => getInitialState('transactions', [])); // Historial
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [isCloudSynced, setIsCloudSynced] = useState(false); // Flag para saber si ya recibimos la verdad de la nube
   const isRemoteUpdate = useRef(false);
 
   const [dailySavingsGoal, setDailySavingsGoal] = useState(0);
   const [totalDebts, setTotalDebts] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
-
-  // Initial Local Storage Load (Fallback)
-  useEffect(() => {
-    try {
-      const backup = localStorage.getItem('finanzas_backup');
-      if (backup) {
-        const parsed = JSON.parse(backup);
-        setWalletBalance(parsed.walletBalance || 0);
-        setDebts(parsed.debts || []);
-        setFixedExpenses(parsed.fixedExpenses || []);
-        setTransactions(parsed.transactions || []);
-      }
-    } catch(e) { console.error("Error reading local backup", e); }
-  }, []);
 
   // Firestore Sync - Load on Mount
   useEffect(() => {
@@ -55,14 +53,15 @@ export const FinanceProvider = ({ children }) => {
         }));
       }
       setIsDataLoaded(true);
+      setIsCloudSynced(true); // Indicamos que recibimos la conexión inicial exitosa de Firebase
       
       // Reset the flag after resolving state batch
       setTimeout(() => {
         isRemoteUpdate.current = false;
-      }, 50);
+      }, 500); // Aumentado a 500ms para asegurar que renders locales terminen
     }, (error) => {
-      console.error("Error en onSnapshot (posible cuota excedida):", error);
-      // Fallback: marcamos como cargado para que use el localStorage que ya se cargó en el primer efecto
+      console.error("Error en onSnapshot (posible cuota excedida o sin internet):", error);
+      // Fallback: marcamos como cargado para la UI, no activamos isCloudSynced para evitar sobrescribir
       setIsDataLoaded(true);
     });
     return () => unsubscribe();
@@ -70,7 +69,8 @@ export const FinanceProvider = ({ children }) => {
 
   // Firestore Sync - Save on Changes (after initial load)
   useEffect(() => {
-    if (isDataLoaded && !isRemoteUpdate.current) {
+    // IMPORTANTE: Solo permitir guardar a Firebase si YA recibimos los datos originales
+    if (isDataLoaded && isCloudSynced && !isRemoteUpdate.current) {
       const saveData = async () => {
         // 1. Siempre guardar en local como primera capa de seguridad
         const currentData = { walletBalance, debts, fixedExpenses, transactions, updatedAt: new Date().toISOString() };
