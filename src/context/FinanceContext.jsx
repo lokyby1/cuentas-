@@ -40,39 +40,19 @@ export const FinanceProvider = ({ children }) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         
-        // Comparar con local para no sobreescribir datos si nuestra cuota ha fallado
-        // y tenemos datos más nuevos en localStorage.
-        let shouldUseCloud = true;
-        try {
-           const backup = localStorage.getItem('finanzas_backup');
-           if (backup) {
-              const parsed = JSON.parse(backup);
-              if (parsed.updatedAt && data.updatedAt) {
-                 const localTime = new Date(parsed.updatedAt).getTime();
-                 const cloudTime = new Date(data.updatedAt).getTime();
-                 if (localTime > cloudTime) {
-                    shouldUseCloud = false;
-                    console.warn("Datos locales más recientes que la nube. Ignorando actualización remota para evitar pérdida de datos.");
-                 }
-              }
-           }
-        } catch(e) {}
-
-        if (shouldUseCloud) {
-           setWalletBalance(data.walletBalance || 0);
-           setDebts(data.debts || []);
-           setFixedExpenses(data.fixedExpenses || []);
-           setTransactions(data.transactions || []);
-           
-           // Actualizamos backup local con lo que llegó de la nube
-           localStorage.setItem('finanzas_backup', JSON.stringify({
-               walletBalance: data.walletBalance || 0,
-               debts: data.debts || [],
-               fixedExpenses: data.fixedExpenses || [],
-               transactions: data.transactions || [],
-               updatedAt: data.updatedAt || new Date().toISOString()
-           }));
-        }
+        setWalletBalance(data.walletBalance || 0);
+        setDebts(data.debts || []);
+        setFixedExpenses(data.fixedExpenses || []);
+        setTransactions(data.transactions || []);
+        
+        // Actualizamos backup local con lo que llegó de la nube
+        localStorage.setItem('finanzas_backup', JSON.stringify({
+            walletBalance: data.walletBalance || 0,
+            debts: data.debts || [],
+            fixedExpenses: data.fixedExpenses || [],
+            transactions: data.transactions || [],
+            updatedAt: data.updatedAt || new Date().toISOString()
+        }));
       }
       setIsDataLoaded(true);
       
