@@ -25,6 +25,7 @@ export const FinanceProvider = ({ children }) => {
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isCloudSynced, setIsCloudSynced] = useState(false); // Flag para saber si ya recibimos la verdad de la nube
   const isRemoteUpdate = useRef(false);
+  const hasLocalChanges = useRef(false); // <--- NUEVO: Candado anti-vaciado automático
 
   const [dailySavingsGoal, setDailySavingsGoal] = useState(0);
   const [totalDebts, setTotalDebts] = useState(0);
@@ -70,8 +71,12 @@ export const FinanceProvider = ({ children }) => {
   // Firestore Sync - Save on Changes (after initial load)
   useEffect(() => {
     // IMPORTANTE: Solo permitir guardar a Firebase si YA recibimos los datos originales
-    if (isDataLoaded && isCloudSynced && !isRemoteUpdate.current) {
+    // Y SÓLO si el usuario hizo un cambio manual (addDebt, addFunds, etc.)
+    if (isDataLoaded && isCloudSynced && !isRemoteUpdate.current && hasLocalChanges.current) {
       const saveData = async () => {
+        // Marcamos que ya procesamos el cambio local para no hacer loops
+        hasLocalChanges.current = false;
+        
         // 1. Siempre guardar en local como primera capa de seguridad
         const currentData = { walletBalance, debts, fixedExpenses, transactions, updatedAt: new Date().toISOString() };
         localStorage.setItem('finanzas_backup', JSON.stringify(currentData));
@@ -81,9 +86,9 @@ export const FinanceProvider = ({ children }) => {
           await setDoc(doc(db, 'finances', 'userData'), currentData);
         } catch (e) {
           console.error("Error saving to Firestore", e);
+          hasLocalChanges.current = true; // Si falló la red, intentar de nuevo al próximo render/reconexión
           if (e.code === 'resource-exhausted') {
              console.warn("Cuota de Firebase excedida. Los datos se guardaron localmente de forma segura en tu navegador.");
-             // Disparamos un evento para informar a la UI si quisieramos, pero por ahora solo el console.
           }
         }
       };
@@ -95,7 +100,7 @@ export const FinanceProvider = ({ children }) => {
       
       return () => clearTimeout(timeoutId);
     }
-  }, [walletBalance, debts, fixedExpenses, transactions, isDataLoaded]);
+  }, [walletBalance, debts, fixedExpenses, transactions, isDataLoaded, isCloudSynced]);
 
   // Algorithm to calculate "Ahorro Diario Requerido"
   useEffect(() => {
@@ -156,6 +161,7 @@ export const FinanceProvider = ({ children }) => {
 
   // Funciones Lógicas Clásicas
   const addFunds = (amount) => {
+    hasLocalChanges.current = true;
     setWalletBalance(prev => prev + amount);
     setTransactions(prev => [{
       id: Date.now().toString(),
@@ -166,11 +172,23 @@ export const FinanceProvider = ({ children }) => {
     }, ...prev]);
   };
   
-  const addDebt = (debt) => setDebts(prev => [...prev, { ...debt, id: Date.now().toString() }]);
-  const updateDebt = (id, updatedDebt) => setDebts(prev => prev.map(d => d.id === id ? { ...d, ...updatedDebt } : d));
-  const deleteDebt = (id) => setDebts(prev => prev.filter(d => d.id !== id));
+  const addDebt = (debt) => {
+    hasLocalChanges.current = true;
+    setDebts(prev => [...prev, { ...debt, id: Date.now().toString() }]);
+  };
+  
+  const updateDebt = (id, updatedDebt) => {
+    hasLocalChanges.current = true;
+    setDebts(prev => prev.map(d => d.id === id ? { ...d, ...updatedDebt } : d));
+  };
+  
+  const deleteDebt = (id) => {
+    hasLocalChanges.current = true;
+    setDebts(prev => prev.filter(d => d.id !== id));
+  };
   
   const addInterest = (id, amount) => {
+    hasLocalChanges.current = true;
     setDebts(prev => prev.map(d => {
       if(d.id === id) {
         const newBalance = d.currentBalance + amount;
@@ -184,9 +202,20 @@ export const FinanceProvider = ({ children }) => {
     }));
   };
 
-  const addFixedExpense = (expense) => setFixedExpenses(prev => [...prev, { ...expense, id: Date.now().toString() }]);
-  const updateFixedExpense = (id, updatedExpense) => setFixedExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updatedExpense } : e));
-  const deleteFixedExpense = (id) => setFixedExpenses(prev => prev.filter(e => e.id !== id));
+  const addFixedExpense = (expense) => {
+    hasLocalChanges.current = true;
+    setFixedExpenses(prev => [...prev, { ...expense, id: Date.now().toString() }]);
+  };
+  
+  const updateFixedExpense = (id, updatedExpense) => {
+    hasLocalChanges.current = true;
+    setFixedExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updatedExpense } : e));
+  };
+  
+  const deleteFixedExpense = (id) => {
+    hasLocalChanges.current = true;
+    setFixedExpenses(prev => prev.filter(e => e.id !== id));
+  };
 
   // --- IA DE PAGOS (Smart Distribution) ---
   
@@ -251,6 +280,7 @@ export const FinanceProvider = ({ children }) => {
 
   // 2. Aplicar la propuesta de distribución a la base de datos local (que luego va a firestore)
   const applySmartDistribution = (distributionPlan, totalUsed) => {
+    hasLocalChanges.current = true;
     const newTransactions = [];
 
     // Procesar cada pago del plan
