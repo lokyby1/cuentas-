@@ -204,6 +204,10 @@ function App() {
         </div>
         
         {renderContent()}
+
+        <div className="mt-xl text-center text-xs text-secondary pb-md" style={{ opacity: 0.7 }}>
+           Última actualización de la app: 9 de Marzo de 2026, 20:45
+        </div>
       </main>
 
       <SmartAssistant />
