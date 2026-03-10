@@ -89,32 +89,35 @@ const MisGastosFijos = () => {
             {/* Decorative top border */}
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', backgroundColor: 'var(--accent-primary)' }}></div>
             
-            <div style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', display: 'flex', gap: '0.5rem' }}>
-              <button 
-                  onClick={() => openForm(expense)}
-                  className="btn btn-outline text-secondary border-none" 
-                  style={{ padding: '0.5rem' }}
-                  title="Editar Gasto"
-              >
-                  <Edit2 size={18} />
-              </button>
-              <button 
-                  onClick={() => handleDelete(expense.id)}
-                  className="btn btn-outline text-secondary border-none" 
-                  style={{ padding: '0.5rem' }}
-                  title="Eliminar Gasto"
-              >
-                  <Trash2 size={18} />
-              </button>
-            </div>
-
-            <div className="flex items-start gap-md mb-lg pt-sm pr-xl">
-              <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-light)', flexShrink: 0 }}>
-                <Receipt size={24} className="text-primary" />
-              </div>
-              <div style={{ paddingRight: '1rem' }}>
-                <h3 className="text-lg font-bold" style={{ textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.2 }}>{expense.name}</h3>
-                <div className="text-2xl font-bold text-primary mt-xs">{formatCurrency(expense.amount)}</div>
+            <div className="flex items-start mb-lg pt-sm">
+              <div className="flex items-start gap-md">
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-light)', flexShrink: 0 }}>
+                  <Receipt size={24} className="text-primary" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-sm">
+                    <h3 className="text-lg font-bold" style={{ textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.2 }}>{expense.name}</h3>
+                    <div className="flex gap-xs" style={{ marginTop: '-0.1rem' }}>
+                      <button 
+                          onClick={() => openForm(expense)}
+                          className="btn btn-outline text-secondary border-none" 
+                          style={{ padding: '0.2rem' }}
+                          title="Editar Gasto"
+                      >
+                          <Edit2 size={16} />
+                      </button>
+                      <button 
+                          onClick={() => handleDelete(expense.id)}
+                          className="btn btn-outline text-secondary border-none" 
+                          style={{ padding: '0.2rem' }}
+                          title="Eliminar Gasto"
+                      >
+                          <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-2xl font-bold text-primary mt-xs">{formatCurrency(expense.amount)}</div>
+                </div>
               </div>
             </div>
             

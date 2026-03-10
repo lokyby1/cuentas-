@@ -169,8 +169,8 @@ const MisDeudas = () => {
               </div>
             </div>
             
-            <div className="bg-white p-md rounded flex-col justify-center items-start" style={{ border: '1px solid var(--border-light)', borderLeft: '4px solid var(--accent-primary)' }}>
-               <span className="text-xs font-semibold text-secondary mb-xs">OBJETIVO PRIORITARIO</span>
+            <div className="bg-white p-md rounded flex-col justify-center items-start w-full" style={{ border: '1px solid var(--border-light)', borderLeft: '4px solid var(--accent-primary)', minWidth: 0 }}>
+               <span className="text-xs font-semibold text-secondary mb-xs whitespace-nowrap block">OBJETIVO PRIORITARIO</span>
                <span className="text-lg font-bold text-primary truncate w-full" style={{ letterSpacing: '-0.02em' }}>{aiAdvice.target?.name}</span>
                <div className="flex items-center gap-lg mt-sm">
                  <div>
@@ -208,26 +208,30 @@ const MisDeudas = () => {
               </div>
             )}
 
-            <div style={{ position: 'absolute', top: '1.25rem', right: '1.5rem', display: 'flex', gap: '0.5rem' }}>
-              <button 
-                  onClick={() => openAddForm(debt)}
-                  className="btn-outline text-secondary border-none" 
-                  style={{ padding: '0.35rem' }}
-                  title="Editar Deuda"
-              >
-                  <Edit2 size={16} />
-              </button>
-              <button 
-                  onClick={() => { if(window.confirm('¿Eliminar deuda?')) deleteDebt(debt.id) }}
-                  className="btn-outline text-secondary border-none" 
-                  style={{ padding: '0.35rem' }}
-                  title="Eliminar Deuda"
-              >
-                  <Trash2 size={16} />
-              </button>
+            <div className="mb-xl pt-lg">
+              <div className="flex items-center gap-sm">
+                <h3 className="text-xl font-bold" style={{ textTransform: 'uppercase', letterSpacing: '0.02em' }}>{debt.name}</h3>
+                
+                <div className="flex gap-xs" style={{ marginTop: '-0.1rem' }}>
+                  <button 
+                      onClick={() => openAddForm(debt)}
+                      className="btn btn-outline text-secondary border-none" 
+                      style={{ padding: '0.2rem' }}
+                      title="Editar Deuda"
+                  >
+                      <Edit2 size={16} />
+                  </button>
+                  <button 
+                      onClick={() => { if(window.confirm('¿Eliminar deuda?')) deleteDebt(debt.id) }}
+                      className="btn btn-outline text-secondary border-none" 
+                      style={{ padding: '0.2rem' }}
+                      title="Eliminar Deuda"
+                  >
+                      <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
             </div>
-            
-            <h3 className="text-xl font-bold mb-xl pt-lg" style={{ textTransform: 'uppercase', letterSpacing: '0.02em', paddingRight: '3rem' }}>{debt.name}</h3>
 
             <div className="grid grid-cols-2 gap-xl">
               {/* Left Column - Details */}
@@ -269,7 +273,7 @@ const MisDeudas = () => {
                         type="radio" name={`goal-${debt.id}`} value="noInterest" 
                         checked={debt.selectedGoal === 'noInterest'} 
                         onChange={() => handleGoalSelection(debt.id, 'noInterest')}
-                        className="mt-1"
+                        style={{ width: 'auto', marginTop: '0.25rem', transform: 'scale(1.2)', cursor: 'pointer' }}
                       />
                       <div>
                         <span className="text-sm font-semibold block text-primary">PAGO PARA NO GENERAR INTERESES</span>
@@ -282,7 +286,7 @@ const MisDeudas = () => {
                         type="radio" name={`goal-${debt.id}`} value="normal" 
                         checked={debt.selectedGoal === 'normal'} 
                         onChange={() => handleGoalSelection(debt.id, 'normal')}
-                        className="mt-1"
+                        style={{ width: 'auto', marginTop: '0.25rem', transform: 'scale(1.2)', cursor: 'pointer' }}
                       />
                       <div>
                         <span className="text-sm font-medium block text-primary">PAGO MENSUAL NORMAL</span>
@@ -295,7 +299,7 @@ const MisDeudas = () => {
                         type="radio" name={`goal-${debt.id}`} value="minimum" 
                         checked={debt.selectedGoal === 'minimum'} 
                         onChange={() => handleGoalSelection(debt.id, 'minimum')}
-                        className="mt-1"
+                        style={{ width: 'auto', marginTop: '0.25rem', transform: 'scale(1.2)', cursor: 'pointer' }}
                       />
                       <div>
                         <span className="text-sm font-medium block text-primary">PAGO MÍNIMO</span>
