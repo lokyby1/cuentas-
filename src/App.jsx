@@ -8,7 +8,7 @@ import Modal from './components/Modal'
 import PinLogin from './components/PinLogin'
 import SmartAssistant from './components/SmartAssistant'
 import { useFinance } from './context/FinanceContext'
-import { LayoutDashboard, CreditCard, WalletCards, LineChart, Settings, Plus, Menu, X } from 'lucide-react'
+import { LayoutDashboard, CreditCard, WalletCards, LineChart, Settings, Plus, Menu, X, Cloud, CloudOff, Database, Loader2 } from 'lucide-react'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -20,7 +20,17 @@ function App() {
   // Settings
   const [geminiKey, setGeminiKey] = useState('');
 
-  const { addFunds, walletBalance } = useFinance();
+  const { addFunds, walletBalance, syncStatus } = useFinance();
+
+  const renderSyncStatus = () => {
+    switch(syncStatus) {
+      case 'conectando': return <div className="flex items-center gap-xs px-2 py-1 rounded bg-gray-100 text-gray-500 text-xs font-bold"><Loader2 size={12} className="animate-spin" /> Conectando...</div>;
+      case 'nube': return <div className="flex items-center gap-xs px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-bold" title="Sincronizado con Firebase"><Cloud size={14} /> En la nube</div>;
+      case 'error_nube': return <div className="flex items-center gap-xs px-2 py-1 rounded bg-red-100 text-red-700 text-xs font-bold" title="Error de Firebase. Tus datos están a salvo localmente."><CloudOff size={14} /> Offline (Guardado Local)</div>;
+      case 'local': return <div className="flex items-center gap-xs px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-xs font-bold" title="Firebase inaccesible. Guardando en tu navegador."><Database size={14} /> Modo Local</div>;
+      default: return null;
+    }
+  };
 
   useEffect(() => {
     const savedKey = localStorage.getItem('finanzas_gemini_key');
@@ -186,8 +196,11 @@ function App() {
            <div style={{width: 34}}></div> {/* Placeholder for balance */}
         </div>
 
-        <div className="topbar">
+        <div className="topbar flex justify-between items-center w-full">
           <h1 style={{ display: 'none' }}>{menuItems.find(i => i.id === activeTab)?.label}</h1>
+          <div className="ml-auto">
+            {renderSyncStatus()}
+          </div>
         </div>
         
         {renderContent()}

@@ -24,6 +24,7 @@ export const FinanceProvider = ({ children }) => {
   const [transactions, setTransactions] = useState(() => getInitialState('transactions', [])); // Historial
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isCloudSynced, setIsCloudSynced] = useState(false); // Flag para saber si ya recibimos la verdad de la nube
+  const [syncStatus, setSyncStatus] = useState('conectando'); // 'conectando', 'nube', 'local', 'error_nube'
   const isRemoteUpdate = useRef(false);
   const hasLocalChanges = useRef(false); // <--- NUEVO: Candado anti-vaciado automático
 
@@ -55,6 +56,7 @@ export const FinanceProvider = ({ children }) => {
       }
       setIsDataLoaded(true);
       setIsCloudSynced(true); // Indicamos que recibimos la conexión inicial exitosa de Firebase
+      setSyncStatus('nube');
       
       // Reset the flag after resolving state batch
       setTimeout(() => {
@@ -64,43 +66,47 @@ export const FinanceProvider = ({ children }) => {
       console.error("Error en onSnapshot (posible cuota excedida o sin internet):", error);
       // Fallback: marcamos como cargado para la UI, no activamos isCloudSynced para evitar sobrescribir
       setIsDataLoaded(true);
+      setSyncStatus('error_nube');
     });
     return () => unsubscribe();
   }, []);
 
-  // Firestore Sync - Save on Changes (after initial load)
+  // Efecto Maestro de Guardado (Se activa SÓLO cuando el usuario hizo un cambio)
   useEffect(() => {
-    // IMPORTANTE: Solo permitir guardar a Firebase si YA recibimos los datos originales
-    // Y SÓLO si el usuario hizo un cambio manual (addDebt, addFunds, etc.)
-    if (isDataLoaded && isCloudSynced && !isRemoteUpdate.current && hasLocalChanges.current) {
+    // Si el usuario presionó algún botón de agregar/editar/borrar...
+    if (hasLocalChanges.current && !isRemoteUpdate.current) {
       const saveData = async () => {
-        // Marcamos que ya procesamos el cambio local para no hacer loops
+        // Apagamos la bandera para no entrar en loop
         hasLocalChanges.current = false;
         
-        // 1. Siempre guardar en local como primera capa de seguridad
+        // 1. SIEMPRE guardar en LocalStorage INMEDIATAMENTE.
+        // Esto salva la vida si el usuario no tiene internet o si un ad-blocker bloquea Firebase.
         const currentData = { walletBalance, debts, fixedExpenses, transactions, updatedAt: new Date().toISOString() };
         localStorage.setItem('finanzas_backup', JSON.stringify(currentData));
 
-        // 2. Intentar respaldar en Firebase
-        try {
-          await setDoc(doc(db, 'finances', 'userData'), currentData);
-        } catch (e) {
-          console.error("Error saving to Firestore", e);
-          hasLocalChanges.current = true; // Si falló la red, intentar de nuevo al próximo render/reconexión
-          if (e.code === 'resource-exhausted') {
-             console.warn("Cuota de Firebase excedida. Los datos se guardaron localmente de forma segura en tu navegador.");
-          }
+        // 2. Intentar guardar en Firebase SÓLO si nos logramos comunicar con ellos al principio
+        if (isCloudSynced) {
+            try {
+              await setDoc(doc(db, 'finances', 'userData'), currentData);
+              setSyncStatus('nube');
+            } catch (e) {
+              console.error("Error guardando en Firestore:", e);
+              hasLocalChanges.current = true; // Si falló al escribir, intentar de nuevo al rato
+              setSyncStatus('error_nube');
+            }
+        } else {
+            // Si nunca conectó con la nube, marcamos que los datos solo están locales
+            setSyncStatus('local');
         }
       };
       
-      // We use a small timeout to debounce multiple rapid local state updates
       const timeoutId = setTimeout(() => {
         saveData();
       }, 500);
       
       return () => clearTimeout(timeoutId);
     }
-  }, [walletBalance, debts, fixedExpenses, transactions, isDataLoaded, isCloudSynced]);
+  }, [walletBalance, debts, fixedExpenses, transactions, isCloudSynced]);
 
   // Algorithm to calculate "Ahorro Diario Requerido"
   useEffect(() => {
@@ -353,7 +359,8 @@ export const FinanceProvider = ({ children }) => {
     totalExpenses,
     isDataLoaded,
     calculateSmartDistribution,
-    applySmartDistribution
+    applySmartDistribution,
+    syncStatus // Enviamos el estado para poder mostrarlo en la UI
   };
 
   return (
